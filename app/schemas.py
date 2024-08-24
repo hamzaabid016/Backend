@@ -1,6 +1,10 @@
 from pydantic import BaseModel
 from typing import Optional, Dict
 from datetime import date
+
+class LoginForm(BaseModel):
+    email: str
+    password: str
 class UserBase(BaseModel):
     name: str
     email: str
@@ -20,7 +24,7 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: str
+    email: str
 
 class BillBase(BaseModel):
     session: str

@@ -6,7 +6,7 @@ from app import crud ,schemas
 
 def seed_users(db: Session):
     user_data = [
-        {"name": "John Doe", "email": "admin@gmai.com", "username": "john", "password": "password123"},
+        {"name": "John Doe", "email": "admin@gmail.com", "username": "john", "password": "password123"},
         {"name": "Jane Smith", "email": "jane@example.com", "username": "jane", "password": "password123"},
     ]
 

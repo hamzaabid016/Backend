@@ -4,6 +4,7 @@ from jose import JWTError, jwt
 from .schemas import TokenData
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, status
 
 def get_user_from_crud():
     from .crud import get_user  # Local import to avoid circular import
@@ -33,9 +34,9 @@ def get_password_hash(password: str):
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     return pwd_context.hash(password)
 
-def authenticate_user(db: Session, username: str, password: str):
+def authenticate_user(db: Session, email: str, password: str):
     get_user = get_user_from_crud()
-    user = get_user(db, username=username)
+    user = get_user(db, email=email)
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -43,6 +44,7 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 def get_current_user(token: str, db: Session):
+   
     get_user = get_user_from_crud()
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -51,13 +53,13 @@ def get_current_user(token: str, db: Session):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception
-    user = get_user(db, username=token_data.username)
+    user = get_user(db, email=token_data.email)
     if user is None:
         raise credentials_exception
     return user

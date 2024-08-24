@@ -1,0 +1,12 @@
+**__pycache__/
+
+env/
+.env
+
+.dockerignore
+
+.vscode/
+.idea/
+
+.DS_Store
+Thumbs.db

@@ -16,5 +16,5 @@ EXPOSE 8000
 # Define environment variable with correct PostgreSQL credentials
 ENV DATABASE_URL=postgresql://postgres:postgres@db/postgres
 
-# Run seed.py and then start the FastAPI application
-CMD ["sh", "-c", "python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+# Run migrations, then seed the database, and finally start the FastAPI application
+CMD ["sh", "-c", "alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, Text, Date, Boolean
+from sqlalchemy import Column, Integer, Text, Date, Boolean, ForeignKey, TIMESTAMP
+from sqlalchemy.orm import relationship
+from datetime import datetime
 from .database import Base
 
 class User(Base):
@@ -10,6 +12,7 @@ class User(Base):
     username = Column(Text, unique=True, index=True)
     password = Column(Text)
 
+    comments = relationship("Comment", back_populates="user")
 class Bill(Base):
     __tablename__ = "bills"
 
@@ -23,3 +26,17 @@ class Bill(Base):
     sponsor_politician_url = Column(Text)
     sponsor_politician_membership_url = Column(Text)
     status = Column(Text)
+
+    comments = relationship("Comment", back_populates="bill")
+    
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    bill_id = Column(Integer, ForeignKey("bills.id", ondelete="CASCADE"), index=True)
+    comment = Column(Text)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="comments")
+    bill = relationship("Bill", back_populates="comments")

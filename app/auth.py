@@ -63,3 +63,14 @@ def get_current_user(token: str, db: Session):
     if user is None:
         raise credentials_exception
     return user
+
+
+def verify_password_reset_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+        return email
+    except JWTError:
+        return None

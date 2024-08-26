@@ -35,6 +35,9 @@ def create_user(db: Session, user: schemas.UserCreate):
 def get_bill(db: Session, bill_id: int):
     return db.query(models.Bill).filter(models.Bill.id == bill_id).first()
 
+def get_bill_by_id(db: Session, bill_id: int):
+    return db.query(models.Bill).filter(models.Bill.id == bill_id).first()
+
 def get_bills(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Bill).offset(skip).limit(limit).all()
 
@@ -50,7 +53,7 @@ def fetch_bills_from_external_api(url: str):
     else:
         return None
 
-def seed_bills(db: Session, initial_url: str = EXTERNAL_API_URL):
+def seed_bills(db: Session, initial_url: str = EXTERNAL_API_URL):  
     url = initial_url
     while url:
         data = fetch_bills_from_external_api(url)
@@ -88,3 +91,10 @@ def seed_bills(db: Session, initial_url: str = EXTERNAL_API_URL):
             url = f"https://api.openparliament.ca{next_url}"
         else:
             url = None
+            
+            
+def create_comment(db: Session, comment: models.Comment):
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment

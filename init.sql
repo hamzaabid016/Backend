@@ -20,3 +20,12 @@ CREATE TABLE IF NOT EXISTS bills (
     sponsor_politician_membership_url TEXT,
     status TEXT
 );
+
+
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    bill_id INTEGER REFERENCES bills(id) ON DELETE CASCADE,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

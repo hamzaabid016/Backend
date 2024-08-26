@@ -46,3 +46,14 @@ class Bill(BillBase):
 
     class Config:
         orm_mode = True
+        
+class ForgotPasswordRequest(BaseModel):
+    email: str
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+    
+class CommentCreate(BaseModel):
+    bill_id: int
+    comment: str

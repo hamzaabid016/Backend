@@ -65,3 +65,22 @@ class Comment(BaseModel):
 
     class Config:
         orm_mode = True
+        
+        
+        
+class Vote(BaseModel):
+    vote: bool 
+
+class UserPollVoteBase(BaseModel):
+    user_id: int
+    poll_id: int
+    vote: bool 
+
+class UserPollVote(UserPollVoteBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+        
+class PollCreate(BaseModel):
+    question: str

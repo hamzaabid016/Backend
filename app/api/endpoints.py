@@ -146,3 +146,19 @@ def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str =
     db.commit()
     
     return {"message": "Comment deleted successfully"}
+
+@router.post("/polls/{poll_id}/vote", response_model=schemas.UserPollVote)
+def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    # Extract user from token
+    user = get_current_user(token, db)
+    
+    # Register the user's vote
+    db_vote = crud.vote_poll(db=db, user_id=user.id, poll_id=poll_id, vote=vote.vote)
+    if db_vote is None:
+        raise HTTPException(status_code=400, detail="Invalid vote option")
+    
+    return db_vote
+
+@router.post("/polls/", response_model=schemas.PollCreate)
+def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db)):
+    return crud.create_poll(db=db, poll=poll)

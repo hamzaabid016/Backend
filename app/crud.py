@@ -98,3 +98,30 @@ def create_comment(db: Session, comment: models.Comment):
     db.commit()
     db.refresh(comment)
     return comment
+
+
+def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool):
+    # Check if the user has already voted
+    existing_vote = db.query(models.UserPollVote).filter(
+        models.UserPollVote.user_id == user_id,
+        models.UserPollVote.poll_id == poll_id
+    ).first()
+
+    if existing_vote:
+        # Update existing vote
+        existing_vote.vote = vote
+    else:
+        # Add new vote
+        db_vote = models.UserPollVote(user_id=user_id, poll_id=poll_id, vote=vote)
+        db.add(db_vote)
+
+    db.commit()
+    db.refresh(existing_vote if existing_vote else db_vote)
+    return existing_vote if existing_vote else db_vote
+
+def create_poll(db: Session, poll: schemas.PollCreate):
+    db_poll = models.Poll(question=poll.question)
+    db.add(db_poll)
+    db.commit()
+    db.refresh(db_poll)
+    return db_poll

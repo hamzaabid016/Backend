@@ -40,3 +40,23 @@ class Comment(Base):
 
     user = relationship("User", back_populates="comments")
     bill = relationship("Bill", back_populates="comments")
+    
+    
+class Poll(Base):
+    __tablename__ = "polls"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question = Column(Text, index=True)
+    yes_votes = Column(Integer, default=0)
+    no_votes = Column(Integer, default=0)
+    
+class UserPollVote(Base):
+    __tablename__ = "user_poll_votes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    poll_id = Column(Integer, ForeignKey('polls.id'))
+    vote = Column(Boolean, nullable=False)  # "yes" or "no"
+
+    user = relationship("User")
+    poll = relationship("Poll")

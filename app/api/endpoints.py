@@ -132,3 +132,17 @@ def get_comments(bill_id: int, db: Session = Depends(get_db), token: str = Depen
     comments = bill.comments
     
     return comments
+@router.delete("/comments/{comment_id}")
+def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    # Check if the bill exists
+    user = get_current_user(token, db)
+    
+    comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Retrieve comments associated with the bill
+    db.delete(comment)
+    db.commit()
+    
+    return {"message": "Comment deleted successfully"}

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -120,3 +120,15 @@ def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), t
         comment=comment.comment
     )
     return crud.create_comment(db=db, comment=db_comment)
+
+@router.get("/comments/{bill_id}", response_model=List[schemas.Comment])
+def get_comments(bill_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    # Check if the bill exists
+    bill = db.query(models.Bill).filter(models.Bill.id == bill_id).first()
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    # Retrieve comments associated with the bill
+    comments = bill.comments
+    
+    return comments

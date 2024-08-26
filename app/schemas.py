@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict
-from datetime import date
+from datetime import date,datetime
 
 class LoginForm(BaseModel):
     email: str
@@ -57,3 +57,11 @@ class ResetPasswordRequest(BaseModel):
 class CommentCreate(BaseModel):
     bill_id: int
     comment: str
+class Comment(BaseModel):
+    user_id: int
+    bill_id: int
+    comment: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

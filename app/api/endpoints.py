@@ -155,10 +155,10 @@ def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), t
     # Register the user's vote
     db_vote = crud.vote_poll(db=db, user_id=user.id, poll_id=poll_id, vote=vote.vote)
     if db_vote is None:
-        raise HTTPException(status_code=400, detail="Invalid vote option")
+         raise HTTPException(status_code=400, detail="User already voted with the same option")
     
     return db_vote
 
-@router.post("/polls/", response_model=schemas.PollCreate)
+@router.post("/polls/", response_model=schemas.Poll)
 def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db)):
     return crud.create_poll(db=db, poll=poll)

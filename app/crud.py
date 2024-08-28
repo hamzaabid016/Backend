@@ -108,8 +108,12 @@ def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool):
     ).first()
 
     if existing_vote:
-        # Update existing vote
-        existing_vote.vote = vote
+        
+        if existing_vote.vote == vote:
+            return None  
+        else:
+            # If the vote is different, update it
+            existing_vote.vote = vote
     else:
         # Add new vote
         db_vote = models.UserPollVote(user_id=user_id, poll_id=poll_id, vote=vote)

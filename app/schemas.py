@@ -82,5 +82,8 @@ class UserPollVote(UserPollVoteBase):
     class Config:
         orm_mode = True
         
+class Poll(BaseModel):
+    id : int
+    question: str
 class PollCreate(BaseModel):
     question: str

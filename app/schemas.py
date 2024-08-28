@@ -85,5 +85,7 @@ class UserPollVote(UserPollVoteBase):
 class Poll(BaseModel):
     id : int
     question: str
+    yes_votes: int
+    no_votes: int
 class PollCreate(BaseModel):
     question: str

@@ -159,8 +159,15 @@ def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), t
     
     return db_vote
 
+@router.get("/polls/", response_model=List[schemas.Poll])
+def get_poll(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        return crud.get_polls(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
+
 @router.post("/polls/", response_model=schemas.Poll)
-def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db)):
+def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         return crud.create_poll(db=db, poll=poll)
     except SQLAlchemyError as e:

@@ -106,22 +106,37 @@ def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool):
         models.UserPollVote.user_id == user_id,
         models.UserPollVote.poll_id == poll_id
     ).first()
-
+    poll = db.query(models.Poll).filter(models.Poll.id == poll_id).first()
+    if not poll:
+        raise HTTPException(status_code=404, detail="Poll not found")
     if existing_vote:
-        
         if existing_vote.vote == vote:
             return None  
         else:
             # If the vote is different, update it
+            if  vote:
+                poll.yes_votes +=1
+                poll.no_votes -=1
+            else:
+                poll.no_votes +=1
+                poll.yes_votes -=1
             existing_vote.vote = vote
     else:
         # Add new vote
+        if vote:
+            poll.yes_votes +=1
+        else:
+            poll.no_votes +=1
         db_vote = models.UserPollVote(user_id=user_id, poll_id=poll_id, vote=vote)
         db.add(db_vote)
 
     db.commit()
+    db.refresh(poll) 
     db.refresh(existing_vote if existing_vote else db_vote)
     return existing_vote if existing_vote else db_vote
+
+def get_polls(db: Session):
+    return db.query(models.Poll).all()
 
 def create_poll(db: Session, poll: schemas.PollCreate):
     db_poll = models.Poll(question=poll.question)

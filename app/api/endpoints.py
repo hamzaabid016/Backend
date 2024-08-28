@@ -161,4 +161,10 @@ def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), t
 
 @router.post("/polls/", response_model=schemas.Poll)
 def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db)):
-    return crud.create_poll(db=db, poll=poll)
+    try:
+        return crud.create_poll(db=db, poll=poll)
+    except SQLAlchemyError as e:
+        db.rollback()  # Rollback the transaction in case of an error
+        raise HTTPException(status_code=500, detail="An error occurred while creating the poll")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")

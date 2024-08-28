@@ -82,10 +82,17 @@ class UserPollVote(UserPollVoteBase):
     class Config:
         orm_mode = True
         
+        
+class PollCreate(BaseModel):
+    question: str
 class Poll(BaseModel):
     id : int
     question: str
     yes_votes: int
     no_votes: int
-class PollCreate(BaseModel):
-    question: str
+
+class DetailPoll(Poll):
+    current_user_vote: Optional[bool] = None  # This field will be dynamically populated
+
+    class Config:
+        orm_mode = True

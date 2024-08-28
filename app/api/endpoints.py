@@ -159,12 +159,28 @@ def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), t
     
     return db_vote
 
-@router.get("/polls/", response_model=List[schemas.Poll])
+@router.get("/polls/", response_model=List[schemas.DetailPoll])
 def get_poll(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = get_current_user(token, db)
+    
     try:
-        return crud.get_polls(db=db)
+        polls = crud.get_polls(db=db)
+        
+        # Fetch user's vote for each poll and add to the response
+        for poll in polls:
+            user_vote = db.query(models.UserPollVote).filter(
+                models.UserPollVote.user_id == user.id,
+                models.UserPollVote.poll_id == poll.id
+            ).first()
+            if user_vote:
+                poll.current_user_vote = True if user_vote.vote else False
+            else:
+                poll.current_user_vote = None  # User has not voted
+
+        return polls
     except Exception as e:
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
+
 
 @router.post("/polls/", response_model=schemas.Poll)
 def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):

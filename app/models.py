@@ -26,6 +26,7 @@ class Bill(Base):
     sponsor_politician_url = Column(Text)
     sponsor_politician_membership_url = Column(Text)
     status = Column(Text)
+    pdf_url = Column(Text) 
 
     comments = relationship("Comment", back_populates="bill")
     

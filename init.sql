@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS bills (
     law BOOLEAN,
     sponsor_politician_url TEXT,
     sponsor_politician_membership_url TEXT,
-    status TEXT
+    status TEXT,
+    pdf_url TEXT
 );
 
 

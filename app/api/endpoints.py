@@ -49,14 +49,14 @@ def bill(bill_id: int, db: Session = Depends(get_db), token: str = Depends(oauth
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     return bill
-
+#, token: str = Depends(oauth2_scheme)
 @router.get("/bills/", response_model=list[schemas.Bill])
-def all_bills(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def all_bills(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     bills = crud.get_bills(db, skip=skip, limit=limit)
     return bills
 
 @router.post("/seed-bills/")
-def seed_bills_endpoint(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def seed_bills_endpoint(db: Session = Depends(get_db)):
     crud.seed_bills(db)
     return {"message": "Bills data seeded successfully"}
 

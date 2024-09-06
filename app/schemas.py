@@ -37,6 +37,7 @@ class BillBase(BaseModel):
     sponsor_politician_url: str
     sponsor_politician_membership_url: str
     status: str
+    pdf_url:str
     
 class BillCreate(BillBase):
     pass

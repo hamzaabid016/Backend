@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from . import models, schemas,auth
+from . import models, schemas,auth,helpers
 import requests
 
 
@@ -76,12 +76,15 @@ def seed_bills(db: Session, initial_url: str = EXTERNAL_API_URL):
 
             # Create or update the bill in the database
             db_bill = models.Bill(**bill_data)
+            db_bill.pdf_url= helpers.convert_to_pdf_url(item.get('url', ''))
+            
             db.add(db_bill)
 
             # Fetch additional details from the URL if necessary
             bill_details = fetch_bills_from_external_api(f"https://api.openparliament.ca{item.get('url', '')}")
             if bill_details:
                 db_bill.status = bill_details.get("status", {}).get("en", db_bill.status)
+        
         
         db.commit()
 

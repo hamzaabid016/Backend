@@ -12,3 +12,4 @@ env/
 Thumbs.db
 
 postgres_data
+test.py

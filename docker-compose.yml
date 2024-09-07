@@ -29,6 +29,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db/postgres
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
 
 volumes:
   postgres_data:

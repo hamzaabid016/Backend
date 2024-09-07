@@ -10,3 +10,6 @@ python-jose
 python-multipart
 bcrypt == 4.2.0
 passlib == 1.7.4
+requests
+pdfplumber
+openai

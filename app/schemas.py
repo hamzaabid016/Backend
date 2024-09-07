@@ -29,7 +29,7 @@ class TokenData(BaseModel):
 
 class BillBase(BaseModel):
     session: str
-    introduced: date
+    introduced: Optional[date]
     name: str
     number: str
     home_chamber: str

@@ -17,7 +17,6 @@ def get_user_by_username(db: Session, username: str):
 def create_user(db: Session, user: schemas.UserCreate):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
-        print(f"User with email {user.email} already exists.")
         return existing_user 
     hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(
@@ -38,8 +37,8 @@ def get_bill(db: Session, bill_id: int):
 def get_bill_by_id(db: Session, bill_id: int):
     return db.query(models.Bill).filter(models.Bill.id == bill_id).first()
 
-def get_bills(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Bill).offset(skip).limit(limit).all()
+def get_bills(db: Session):
+    return db.query(models.Bill).all()
 
 EXTERNAL_API_URL = "https://api.openparliament.ca/bills/"
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .. import schemas, crud
 from ..auth import create_access_token, authenticate_user, get_current_user,oauth2_scheme,verify_password_reset_token,get_password_hash
 from ..database import get_db
-from .. import models
+from .. import models, helpers
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -51,8 +51,8 @@ def bill(bill_id: int, db: Session = Depends(get_db), token: str = Depends(oauth
     return bill
 #, token: str = Depends(oauth2_scheme)
 @router.get("/bills/", response_model=list[schemas.Bill])
-def all_bills(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    bills = crud.get_bills(db, skip=skip, limit=limit)
+def all_bills(db: Session = Depends(get_db)):
+    bills = crud.get_bills(db)
     return bills
 
 @router.post("/seed-bills/")
@@ -191,3 +191,24 @@ def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db), token: 
         raise HTTPException(status_code=500, detail="An error occurred while creating the poll")
     except Exception as e:
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
+    
+@router.get("/summarize/{bill_id}")
+def summarize_bill(bill_id: int, db: Session = Depends(get_db)):
+    # Fetch the bill from the database using the provided ID
+    bill = db.query(models.Bill).filter(models.Bill.id == bill_id).first()  # Assuming Bill model exists
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+
+    pdf_url = bill.pdf_url  # Assuming the Bill model has a 'pdf_url' field
+
+    # Fetch and extract text from the PDF
+    try:
+        text = helpers.fetch_pdf_text(pdf_url)
+        cleaned_text=helpers.clean_text(text)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"No decription available to summarize")
+
+    # Generate a summary using OpenAI GPT
+    summary = helpers.generate_summary(cleaned_text)
+
+    return {"summary": summary}

@@ -7,7 +7,7 @@ from typing import Optional
 from .. import schemas, crud
 from ..auth import create_access_token, authenticate_user, get_current_user,oauth2_scheme,verify_password_reset_token,get_password_hash
 from ..database import get_db
-from .. import models, helpers
+from .. import models, helpers,chatbot
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -157,7 +157,9 @@ def get_comments(bill_id: int, db: Session = Depends(get_db), token: str = Depen
 def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Check if the bill exists
     user = get_current_user(token, db)
-    
+    if not user.is_moderator:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete a comment")
+
     comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
@@ -205,6 +207,10 @@ def get_poll(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme))
 
 @router.post("/polls/", response_model=schemas.Poll)
 def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = get_current_user(token, db)
+    if not user.is_moderator:
+        raise HTTPException(status_code=403, detail="You do not have permission to create a poll")
+
     try:
         return crud.create_poll(db=db, poll=poll)
     except SQLAlchemyError as e:
@@ -237,29 +243,34 @@ def summarize_bill(bill_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/chat/{bill_id}")
-def chatbot(bill_id: int, db: Session = Depends(get_db)):
-    pass
-
-
-@router.post("/bills-bill/{bill_id}/upvote")
-def upvote_bill(bill_id: int, db: Session = Depends(get_db)):
-    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
+def chatbotfunc(bill_id: int, db: Session = Depends(get_db)):
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first() 
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
-    
-    bill.upvotes += 1
-    db.commit()
-    db.refresh(bill)
-    return bill
-
-
+    bill_texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
+    if bill_texts:
+        summary = "\n".join([text.summary_en for text in bill_texts if text.summary_en])
+    else:
+        summary = "No summary available."
+    bill_info = {
+        "bill_name": bill.name_en,
+        "bill_number": bill.number,
+        "summary": summary,
+        "status": bill.status_code,
+        "introduced_date": bill.introduced
+    }
+    conversation = [
+        {"role": "user", "content": "Tell me more about this bill."}
+    ]
+    updated_conversation = chatbot.generate(conversation, bill_info)
+    return {"conversation": updated_conversation}
 @router.post("/bills-bill/{bill_id}/vote")
 def vote_on_bill(
     bill_id: int,
     upvote: bool,  
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)  # Extracting user token
-):
+    ):
     # Extract user from token
     user = get_current_user(token, db)
     
@@ -278,7 +289,7 @@ def vote_on_bill(
         # If user has already voted
         if existing_vote.upvote == upvote:
             # No change in vote, do nothing
-            return {"detail": "No change in vote"}
+            return {"detail": "No change in vote", "vote": existing_vote}
         else:
             # Change in vote, update counts
             if existing_vote.upvote:
@@ -309,5 +320,10 @@ def vote_on_bill(
     
     db.commit()
     db.refresh(bill)
+    
+    # Refresh the existing_vote if it was updated
+    if existing_vote:
+        db.refresh(existing_vote)
+    
     
     return {"detail": "Vote recorded", "vote": existing_vote if existing_vote else db_vote}

@@ -18,4 +18,4 @@ venv
 
 
 full_database_data_only.sql
-full_database.sql
+full_database_dump.sql

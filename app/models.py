@@ -11,6 +11,7 @@ class User(Base):
     email = Column(Text, unique=True, index=True)
     username = Column(Text, unique=True, index=True)
     password = Column(Text)
+    is_moderator = Column(Boolean, default=False)
 
     comments = relationship("Comment", back_populates="user")
 class Bill(Base):

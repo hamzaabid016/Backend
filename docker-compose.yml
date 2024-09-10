@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
-      - ./full_database.sql:/docker-entrypoint-initdb.d/full_database.sql
+      - ./full_database_dump.sql:/docker-entrypoint-initdb.d/full_database_dump.sql
     ports:
       - "5432:5432"
     healthcheck:

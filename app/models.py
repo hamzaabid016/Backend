@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Date, Boolean, ForeignKey, TIMESTAMP
+from sqlalchemy import Column, Integer, Text, Date, Boolean, ForeignKey, TIMESTAMP,String,DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -27,7 +27,8 @@ class Bill(Base):
     sponsor_politician_membership_url = Column(Text)
     status = Column(Text)
     pdf_url = Column(Text) 
-
+    upvotes = Column(Integer, default=0)
+    downvotes = Column(Integer, default=0)
     comments = relationship("Comment", back_populates="bill")
     
 class Comment(Base):
@@ -61,3 +62,86 @@ class UserPollVote(Base):
 
     user = relationship("User")
     poll = relationship("Poll")
+    
+    
+    
+    
+class BillsBill(Base):
+    __tablename__ = 'bills_bill'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name_en = Column(Text, nullable=False)
+    number = Column(String(10), nullable=False)
+    number_only = Column(Integer, nullable=False)
+    sponsor_member_id = Column(Integer, nullable=True)
+    privatemember = Column(Boolean, nullable=True)
+    sponsor_politician_id = Column(Integer, nullable=True)
+    law = Column(Boolean, nullable=True)
+    added = Column(Date, nullable=False)
+    institution = Column(String(1), nullable=False)
+    name_fr = Column(Text, nullable=False)
+    short_title_en = Column(Text, nullable=False)
+    short_title_fr = Column(Text, nullable=False)
+    status_date = Column(Date, nullable=True)
+    introduced = Column(Date, nullable=True)
+    text_docid = Column(Integer, nullable=True)
+    status_code = Column(String(50), nullable=False)
+
+    # Relationship to bills_billtext (one-to-many)
+    texts = relationship("BillsBillText", back_populates="bill")
+
+
+
+class BillsBillText(Base):
+    __tablename__ = 'bills_billtext'
+
+    id = Column(Integer, primary_key=True, index=True)
+    bill_id = Column(Integer, ForeignKey('bills_bill.id', deferrable=True, initially='DEFERRED'), nullable=False)
+    docid = Column(Integer, nullable=False)
+    created = Column(Text, nullable=False)
+    text_en = Column(Text, nullable=False)
+    text_fr = Column(Text, nullable=False)
+    summary_en = Column(Text, nullable=False)
+
+    # Relationship back to bills_bill
+    bill = relationship("BillsBill", back_populates="texts")
+
+
+class CoreParty(Base):
+    __tablename__ = "core_party"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name_en = Column(String(100), nullable=False)
+    slug = Column(String(10), nullable=False)
+    short_name_en = Column(String(100), nullable=False)
+    name_fr = Column(String(100), nullable=False)
+    short_name_fr = Column(String(100), nullable=False)
+
+class CorePolitician(Base):
+    __tablename__ = "core_politician"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    name_given = Column(String(50), nullable=False)
+    name_family = Column(String(50), nullable=False)
+    dob = Column(Date)
+    gender = Column(String(1), nullable=False)
+    headshot = Column(String(100))
+    slug = Column(String(30), nullable=False)
+    headshot_thumbnail = Column(String(100))
+    
+    # Relationship to core_politicianinfo (one politician can have many info entries)
+    politician_info = relationship("CorePoliticianInfo", back_populates="politician")
+
+
+class CorePoliticianInfo(Base):
+    __tablename__ = "core_politicianinfo"
+
+    id = Column(Integer, primary_key=True, index=True)
+    politician_id = Column(Integer, ForeignKey('core_politician.id', ondelete="CASCADE"), nullable=False)
+    value = Column(Text, nullable=False)
+    schema = Column(String(40), nullable=False)
+    created = Column(DateTime)
+
+    # Relationship to core_politician
+    politician = relationship("CorePolitician", back_populates="politician_info")

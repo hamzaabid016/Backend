@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Date, Boolean, ForeignKey, TIMESTAMP,String,DateTime
+from sqlalchemy import Column, Integer, Text, Date, Boolean, ForeignKey, TIMESTAMP,String,DateTime,UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -78,6 +78,8 @@ class BillsBill(Base):
     sponsor_politician_id = Column(Integer, nullable=True)
     law = Column(Boolean, nullable=True)
     added = Column(Date, nullable=False)
+    upvotes = Column(Integer, default=0, nullable=False)
+    downvotes = Column(Integer, default=0, nullable=False)
     institution = Column(String(1), nullable=False)
     name_fr = Column(Text, nullable=False)
     short_title_en = Column(Text, nullable=False)
@@ -145,3 +147,20 @@ class CorePoliticianInfo(Base):
 
     # Relationship to core_politician
     politician = relationship("CorePolitician", back_populates="politician_info")
+    
+    
+    
+class UserBillVote(Base):
+    __tablename__ = "user_bill_votes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    bill_id = Column(Integer, ForeignKey('bills_bill.id'))
+    upvote = Column(Boolean, nullable=True)  # True for upvote, False for downvote
+
+    user = relationship("User")
+    bill = relationship("BillsBill")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'bill_id', name='unique_user_bill_vote'),
+    )

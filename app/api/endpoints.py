@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status,Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from typing import Optional
 from .. import schemas, crud
 from ..auth import create_access_token, authenticate_user, get_current_user,oauth2_scheme,verify_password_reset_token,get_password_hash
 from ..database import get_db
@@ -232,3 +233,81 @@ def summarize_bill(bill_id: int, db: Session = Depends(get_db)):
     summary = helpers.generate_summary(cleaned_text)
 
     return {"summary": summary}
+
+
+
+@router.get("/chat/{bill_id}")
+def chatbot(bill_id: int, db: Session = Depends(get_db)):
+    pass
+
+
+@router.post("/bills-bill/{bill_id}/upvote")
+def upvote_bill(bill_id: int, db: Session = Depends(get_db)):
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    bill.upvotes += 1
+    db.commit()
+    db.refresh(bill)
+    return bill
+
+
+@router.post("/bills-bill/{bill_id}/vote")
+def vote_on_bill(
+    bill_id: int,
+    upvote: bool,  
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)  # Extracting user token
+):
+    # Extract user from token
+    user = get_current_user(token, db)
+    
+    # Retrieve the bill
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    # Check if the user has already voted on this bill
+    existing_vote = db.query(models.UserBillVote).filter(
+        models.UserBillVote.user_id == user.id,
+        models.UserBillVote.bill_id == bill_id
+    ).first()
+
+    if existing_vote:
+        # If user has already voted
+        if existing_vote.upvote == upvote:
+            # No change in vote, do nothing
+            return {"detail": "No change in vote"}
+        else:
+            # Change in vote, update counts
+            if existing_vote.upvote:
+                # Previous vote was upvote
+                bill.upvotes -= 1
+            else:
+                # Previous vote was downvote
+                bill.downvotes -= 1
+
+            if upvote:
+                # New vote is upvote
+                bill.upvotes += 1
+            else:
+                # New vote is downvote
+                bill.downvotes += 1
+
+            existing_vote.upvote = upvote
+    else:
+        # New vote
+        if upvote:
+            bill.upvotes += 1
+        else:
+            bill.downvotes += 1
+        
+        # Create new vote record
+        db_vote = models.UserBillVote(user_id=user.id, bill_id=bill_id, upvote=upvote)
+        db.add(db_vote)
+    
+    db.commit()
+    db.refresh(bill)
+    
+    return {"detail": "Vote recorded", "vote": existing_vote if existing_vote else db_vote}

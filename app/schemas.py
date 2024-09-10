@@ -109,6 +109,8 @@ class BillsBillText(BaseModel):
 
     class Config:
         orm_mode = True   
+        
+        
 class Bills_bill(BaseModel):
     id: int
     name_en: str
@@ -119,6 +121,8 @@ class Bills_bill(BaseModel):
     sponsor_politician_id: Optional[int]
     law: Optional[bool]
     added: date
+    upvotes: int
+    downvotes: int
     institution: str
     #name_fr: str
     short_title_en: str

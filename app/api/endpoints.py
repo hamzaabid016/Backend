@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from .. import schemas, crud
@@ -54,6 +54,26 @@ def bill(bill_id: int, db: Session = Depends(get_db), token: str = Depends(oauth
 def all_bills(db: Session = Depends(get_db)):
     bills = crud.get_bills(db)
     return bills
+
+@router.get("/bills-bill/", response_model=list[schemas.Bills_bill])
+def all_bills_bill(
+    db: Session = Depends(get_db),
+    limit: int = Query(15, le=100),  # Default limit is 15, max 100
+    offset: int = Query(0, ge=0)    # Default offset is 0, must be non-negative
+):
+    # Fetch bills with limit and offset
+    bills = db.query(models.BillsBill).offset(offset).limit(limit).all()
+    
+    if not bills:
+        raise HTTPException(status_code=404, detail="No bills found")
+    
+    # Fetch related texts for each bill
+    for bill in bills:
+        bill.texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
+    
+    
+    return bills
+
 
 @router.post("/seed-bills/")
 def seed_bills_endpoint(db: Session = Depends(get_db)):

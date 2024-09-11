@@ -135,3 +135,11 @@ class Bills_bill(BaseModel):
 
     class Config:
         orm_mode = True
+        
+        
+class Message(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    conversation: Optional[List[Message]] = None 

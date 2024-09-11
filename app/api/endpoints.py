@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status,Query
+from fastapi import APIRouter, Depends, HTTPException, status,Query, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -242,28 +242,59 @@ def summarize_bill(bill_id: int, db: Session = Depends(get_db)):
 
 
 
-@router.get("/chat/{bill_id}")
-def chatbotfunc(bill_id: int, db: Session = Depends(get_db)):
-    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first() 
-    if not bill:
-        raise HTTPException(status_code=404, detail="Bill not found")
-    bill_texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
-    if bill_texts:
-        summary = "\n".join([text.summary_en for text in bill_texts if text.summary_en])
-    else:
-        summary = "No summary available."
-    bill_info = {
-        "bill_name": bill.name_en,
-        "bill_number": bill.number,
-        "summary": summary,
-        "status": bill.status_code,
-        "introduced_date": bill.introduced
-    }
-    conversation = [
-        {"role": "user", "content": "Tell me more about this bill."}
-    ]
-    updated_conversation = chatbot.generate(conversation, bill_info)
-    return {"conversation": updated_conversation}
+@router.post("/chat/{bill_id}")
+def chatbotfunc(
+    bill_id: int,
+    request: schemas.ChatRequest = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Fetch the bill from the database
+        bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        # Fetch the bill texts and summaries
+        bill_texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
+        if bill_texts:
+            summary = "\n".join([text.summary_en for text in bill_texts if text.summary_en])
+        else:
+            summary = "No summary available."
+        
+        # Prepare the bill information
+        bill_info = {
+            "bill_name": bill.name_en,
+            "bill_number": bill.number,
+            "summary": summary,
+            "status": bill.status_code,
+            "introduced_date": bill.introduced
+        }
+        
+        # Extract conversation from the request body
+        conversation = request.conversation if request.conversation else []
+        
+        # If no conversation history, start with a greeting
+        if len(conversation) == 0:
+            conversation.append({
+                "role": "assistant",
+                "content": f"The bill '{bill_info['bill_name']}' is being discussed. What would you like to know about it?"
+            })
+            return {"conversation": conversation}
+        
+        # Generate an updated conversation
+        updated_conversation = chatbot.generate(conversation, bill_info)
+        
+        return {"conversation": updated_conversation}
+    
+    except HTTPException as http_err:
+        # Handle HTTP exceptions
+        raise http_err
+    
+    except Exception as ex:
+        # Handle other exceptions
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
+
+
 @router.post("/bills-bill/{bill_id}/vote")
 def vote_on_bill(
     bill_id: int,

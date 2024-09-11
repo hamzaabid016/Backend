@@ -30,19 +30,18 @@ class Bill(Base):
     pdf_url = Column(Text) 
     upvotes = Column(Integer, default=0)
     downvotes = Column(Integer, default=0)
-    comments = relationship("Comment", back_populates="bill")
     
 class Comment(Base):
     __tablename__ = "comments"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    bill_id = Column(Integer, ForeignKey("bills.id", ondelete="CASCADE"), index=True)
+    bill_id = Column(Integer, ForeignKey("bills_bill.id", ondelete="CASCADE"), index=True)
     comment = Column(Text)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     user = relationship("User", back_populates="comments")
-    bill = relationship("Bill", back_populates="comments")
+    bill = relationship("BillsBill", back_populates="comments")
     
     
 class Poll(Base):
@@ -92,8 +91,7 @@ class BillsBill(Base):
 
     # Relationship to bills_billtext (one-to-many)
     texts = relationship("BillsBillText", back_populates="bill")
-
-
+    comments = relationship("Comment", back_populates="bill")
 
 class BillsBillText(Base):
     __tablename__ = 'bills_billtext'
@@ -133,6 +131,7 @@ class CorePolitician(Base):
     slug = Column(String(30), nullable=False)
     headshot_thumbnail = Column(String(100))
     
+
     # Relationship to core_politicianinfo (one politician can have many info entries)
     politician_info = relationship("CorePoliticianInfo", back_populates="politician")
 

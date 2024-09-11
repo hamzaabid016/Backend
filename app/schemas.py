@@ -59,6 +59,7 @@ class CommentCreate(BaseModel):
     bill_id: int
     comment: str
 class Comment(BaseModel):
+    id: int
     user_id: int
     bill_id: int
     comment: str

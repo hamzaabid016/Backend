@@ -109,7 +109,6 @@ def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depend
     Here i need to typically send an email to the user with the reset token
     but i am not doind that right now will do in future
     """
-    print(f"Reset token for {email}: {reset_token}")  # This is just for demonstration purposes
 
     return {"message": "Password reset email sent","reset_token":reset_token}
 
@@ -144,7 +143,7 @@ def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), t
         raise HTTPException(status_code=404, detail="User not found")
     
     # Check if the bill exists
-    bill = db.query(models.Bill).filter(models.Bill.id == comment.bill_id).first()
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == comment.bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
 
@@ -159,14 +158,14 @@ def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), t
 @router.get("/comments/{bill_id}", response_model=List[schemas.Comment])
 def get_comments(bill_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Check if the bill exists
-    bill = db.query(models.Bill).filter(models.Bill.id == bill_id).first()
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     
     # Retrieve comments associated with the bill
     comments = bill.comments
-    
     return comments
+
 @router.delete("/comments/{comment_id}")
 def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Check if the bill exists

@@ -72,9 +72,23 @@ def all_bills_bill(
     for bill in bills:
         bill.texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
     
-    
     return bills
 
+@router.get("/bills-bill/{bill_id}", response_model=schemas.Bills_bill)
+def get_single_bill(
+    bill_id: int,  # The unique ID of the bill to fetch
+    db: Session = Depends(get_db)
+):
+    # Fetch the bill by its ID
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    # Fetch related texts for the bill
+    bill.texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
+    
+    return bill
 
 @router.post("/seed-bills/")
 def seed_bills_endpoint(db: Session = Depends(get_db)):

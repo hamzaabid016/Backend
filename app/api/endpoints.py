@@ -9,7 +9,7 @@ from ..auth import create_access_token, authenticate_user, get_current_user,oaut
 from ..database import get_db
 from .. import models, helpers,chatbot
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 router = APIRouter()
 @router.post("/login", response_model=schemas.Token)

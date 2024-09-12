@@ -235,23 +235,33 @@ def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db), token: 
 @router.get("/summarize/{bill_id}")
 def summarize_bill(bill_id: int, db: Session = Depends(get_db)):
     # Fetch the bill from the database using the provided ID
-    bill = db.query(models.Bill).filter(models.Bill.id == bill_id).first()  # Assuming Bill model exists
+    bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()  # Assuming Bill model exists
+    
     if not bill:
-        raise HTTPException(status_code=404, detail="Bill not found")
+        raise HTTPException(status_code=404, detail="No bill  found with the given ID")
+    
+    bill.texts = db.query(models.BillsBillText).filter(models.BillsBillText.docid == bill.text_docid).all()
+    if not bill.texts:
+        raise HTTPException(status_code=404, detail="No text available for the bill")
 
-    pdf_url = bill.pdf_url  # Assuming the Bill model has a 'pdf_url' field
+    # pdf_url = bill.pdf_url  # Assuming the Bill model has a 'pdf_url' field
 
-    # Fetch and extract text from the PDF
-    try:
-        text = helpers.fetch_pdf_text(pdf_url)
-        cleaned_text=helpers.clean_text(text)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"No decription available to summarize")
+    # # Fetch and extract text from the PDF
+    # try:
+    #     text = helpers.fetch_pdf_text(pdf_url)
+    #     cleaned_text=helpers.clean_text(text)
+    # except Exception as e:
+    #     raise HTTPException(status_code=404, detail=f"No decription available to summarize")
 
     # Generate a summary using OpenAI GPT
-    summary = helpers.generate_summary(cleaned_text)
-
-    return {"summary": summary}
+    for text in bill.texts:
+        if text.text_en and text.text_en.strip():  # Check if text_en is not empty
+            cleaned_text = helpers.clean_text(text.text_en)  # Assuming clean_text is defined
+            summary = helpers.generate_summary(cleaned_text)  # Assuming generate_summary is defined
+            return {"summary": summary}
+    
+    # If no valid text_en was found
+    raise HTTPException(status_code=404, detail="No valid text available to summarize")
 
 
 

@@ -19,7 +19,8 @@ def login(form_data: schemas.LoginForm , db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    return {"access_token": access_token, "token_type": "bearer","user":user}
 
 @router.get("/profile", response_model=schemas.User)
 def read_users_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):

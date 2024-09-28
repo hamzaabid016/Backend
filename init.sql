@@ -147,3 +147,10 @@ CREATE INDEX IF NOT EXISTS idx_core_politician_slug ON core_politician(slug);
 -- Indexes for core_politicianinfo
 CREATE INDEX IF NOT EXISTS idx_core_politicianinfo_politician_id ON core_politicianinfo(politician_id);
 CREATE INDEX IF NOT EXISTS idx_core_politicianinfo_schema ON core_politicianinfo(schema);
+
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    read BOOLEAN DEFAULT FALSE
+);

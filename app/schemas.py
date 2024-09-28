@@ -145,3 +145,12 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     conversation: Optional[List[Message]] = None 
+    
+    
+class Notification(BaseModel):
+    id: int
+    user_id: int
+    message: str
+    read: bool
+    class Config:
+        orm_mode = True

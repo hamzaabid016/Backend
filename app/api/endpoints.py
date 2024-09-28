@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status,Query, Body
+from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -8,7 +8,7 @@ from .. import schemas, crud
 from ..auth import create_access_token, authenticate_user, get_current_user,oauth2_scheme,verify_password_reset_token,get_password_hash
 from ..database import get_db
 from .. import models, helpers,chatbot
-
+from ..websocket_manager import manager
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 router = APIRouter()
@@ -136,7 +136,7 @@ def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(
 
 
 @router.post("/comments/", response_model=schemas.CommentCreate)
-def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Check if the user exists
     user = get_current_user(token,db)
     user = db.query(models.User).filter(models.User.id == user.id).first()
@@ -154,6 +154,14 @@ def add_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), t
         bill_id=comment.bill_id,
         comment=comment.comment
     )
+    
+    # Notify all connected clients
+    notification_message = f"New comment added by {user.username} on Bill {bill.name_en}"
+    new_notification = models.Notification(user_id=user.id, message=notification_message)
+    db.add(new_notification)
+    db.commit()
+    await manager.broadcast_to_moderators("New notification")
+    
     return crud.create_comment(db=db, comment=db_comment)
 
 @router.get("/comments/{bill_id}", response_model=List[schemas.Comment])
@@ -185,7 +193,7 @@ def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str =
     return {"message": "Comment deleted successfully"}
 
 @router.post("/polls/{poll_id}/vote", response_model=schemas.UserPollVote)
-def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Extract user from token
     user = get_current_user(token, db)
     
@@ -194,6 +202,12 @@ def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), t
     if db_vote is None:
          raise HTTPException(status_code=400, detail="User already voted with the same option")
     
+    notification_message = f"{user.username} has voted {vote.vote} on poll {poll_id}."
+    # Save notification to the database (assuming you have a Notification model and method)
+    new_notification = models.Notification(user_id=user.id, message=notification_message)
+    db.add(new_notification)
+    db.commit()
+    await manager.broadcast_to_moderators("New notification")
     return db_vote
 
 @router.get("/polls/", response_model=List[schemas.DetailPoll])
@@ -271,7 +285,7 @@ def chatbotfunc(
     bill_id: int,
     request: schemas.ChatRequest = Body(...),
     db: Session = Depends(get_db)
-):
+    ):
     try:
         # Fetch the bill from the database
         bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
@@ -320,7 +334,7 @@ def chatbotfunc(
 
 
 @router.post("/bills-bill/{bill_id}/vote")
-def vote_on_bill(
+async def vote_on_bill(
     bill_id: int,
     upvote: bool,  
     db: Session = Depends(get_db),
@@ -339,7 +353,7 @@ def vote_on_bill(
         models.UserBillVote.user_id == user.id,
         models.UserBillVote.bill_id == bill_id
     ).first()
-
+    notification_message = f"{user.username} has {'upvoted' if upvote else 'downvoted'} the bill '{bill.name_en}'."  
     if existing_vote:
         # If user has already voted
         if existing_vote.upvote == upvote:
@@ -379,6 +393,63 @@ def vote_on_bill(
     # Refresh the existing_vote if it was updated
     if existing_vote:
         db.refresh(existing_vote)
-    
-    
+    new_notification = models.Notification(user_id=user.id, message=notification_message)
+    db.add(new_notification)
+    db.commit()
+
+    # Optionally, send the notification to connected moderators if needed
+    await manager.broadcast_to_moderators("New notification")
     return {"detail": "Vote recorded", "vote": existing_vote if existing_vote else db_vote}
+
+
+
+
+@router.websocket("/ws/notifications")
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    db: Session = Depends(get_db),
+    token: Optional[str] = Query(...)
+    ):
+    # user = None
+    if token:
+        try:
+            user = get_current_user(token, db)
+        except HTTPException:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+    
+    try:
+        await manager.connect(websocket, user)
+        missed_notifications = db.query(models.Notification).filter(
+        models.Notification.user_id == user.id,models.Notification.read == False).all()
+        if missed_notifications:
+            for notification in missed_notifications:
+                await websocket.send_text("New notification")
+        while True:
+            data = await websocket.receive_text()
+            # Process the received data if needed
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    finally:
+        manager.disconnect(websocket)
+        
+        
+@router.get("/notifications/", response_model=List[schemas.Notification])
+async def get_notifications( db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = get_current_user(token, db)  # Verify user with the token
+    if not user.is_moderator:
+        raise HTTPException(status_code=403, detail="You do not have permission to view notifications")
+    notifications = db.query(models.Notification).filter(models.Notification.user_id == user.id).all()
+    response_notifications = [{
+        "id": notification.id,
+        "user_id": notification.user_id,
+        "message": notification.message,
+        "read": notification.read  # Include the original read status
+    } for notification in notifications]
+    for notification in notifications:
+        notification.read = True 
+    db.commit()
+    if not notifications:
+        raise HTTPException(status_code=404, detail="No notifications found.")
+    
+    return response_notifications

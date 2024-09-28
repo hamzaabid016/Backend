@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas,auth,helpers
 import requests
-
+from fastapi import HTTPException 
 
 def get_user(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()

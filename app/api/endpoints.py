@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
+import os
 from typing import List
+from fastapi import File, UploadFile
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -12,6 +15,7 @@ from ..websocket_manager import manager
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 router = APIRouter()
+
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: schemas.LoginForm , db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.email, form_data.password)
@@ -41,6 +45,45 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
+
+# Define the path where profile pictures will be stored
+UPLOAD_DIRECTORY = "static/users"
+
+# Ensure the directory exists
+if not os.path.exists(UPLOAD_DIRECTORY):
+    os.makedirs(UPLOAD_DIRECTORY)
+ 
+@router.post("/profile-picture/")
+def upload_profile_picture(
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db), 
+    token: str = Depends(oauth2_scheme)
+    ):
+    # Get current user from token
+    current_user = get_current_user(token, db)
+
+    # Validate the file type (e.g., only allow images)
+    if file.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG or PNG is allowed.")
+
+    # Create a unique filename
+    file_extension = file.filename.split(".")[-1]
+    new_filename = f"{uuid4()}.{file_extension}"
+
+    # Save the file to the static/users directory
+    file_path = os.path.join(UPLOAD_DIRECTORY, new_filename)
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+
+    # Save the URL (path) of the profile picture in the database
+    profile_picture_url = f"/static/users/{new_filename}"
+    current_user.profile_picture = profile_picture_url
+
+    # Update the user in the database
+    db.add(current_user)
+    db.commit()
+
+    return {"profile_picture_url": profile_picture_url}   
 
 
 @router.get("/bills/{bill_id}", response_model=schemas.Bill)

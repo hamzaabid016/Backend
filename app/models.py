@@ -12,7 +12,8 @@ class User(Base):
     username = Column(Text, unique=True, index=True)
     password = Column(Text)
     is_moderator = Column(Boolean, default=False)
-
+    profile_picture = Column(Text, nullable=True)
+    
     comments = relationship("Comment", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
     

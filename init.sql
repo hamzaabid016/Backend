@@ -4,8 +4,10 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT,
     email TEXT UNIQUE,
     username TEXT UNIQUE,
-    password TEXT
+    password TEXT,
+    profile_picture TEXT
 );
+--ALTER TABLE users ADD COLUMN profile_picture TEXT;
 
 -- Create 'bills' table
 CREATE TABLE IF NOT EXISTS bills (

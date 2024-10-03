@@ -16,6 +16,6 @@ test.py
 
 venv
 
-
+users_data/
 full_database_data_only.sql
 full_database_dump.sql

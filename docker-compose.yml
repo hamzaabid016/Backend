@@ -22,6 +22,7 @@ services:
     build: .
     volumes:
       - .:/app
+      - ./users_data:/app/static/users
     ports:
       - "8000:8000"
     depends_on:

@@ -16,6 +16,8 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_moderator: bool = False
+    profile_picture:str
+    
 
     class Config:
         orm_mode = True

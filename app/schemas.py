@@ -16,14 +16,8 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_moderator: bool = False
-    profile_picture:str
+    profile_picture: Optional[str] = None
     
-
-    class Config:
-        orm_mode = True
-class UserLogin(UserBase):
-    id: int
-    is_moderator: bool = False
 
     class Config:
         orm_mode = True
@@ -31,7 +25,7 @@ class UserLogin(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    user:UserLogin
+    user:User
 
 class TokenData(BaseModel):
     email: str

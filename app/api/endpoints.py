@@ -103,9 +103,9 @@ def all_bills(db: Session = Depends(get_db)):
 @router.get("/bills-bill/", response_model=list[schemas.Bills_bill])
 def all_bills_bill(
     db: Session = Depends(get_db),
-    limit: int = Query(40, le=100),  # Default limit is 15, max 100
+    limit: int = Query(15, le=100),  # Default limit is 15, max 100
     offset: int = Query(0, ge=0)    # Default offset is 0, must be non-negative
-):
+    ):
     # Fetch bills with limit and offset
     bills = db.query(models.BillsBill).offset(offset).limit(limit).all()
     
@@ -122,10 +122,10 @@ def all_bills_bill(
 def get_single_bill(
     bill_id: int,  # The unique ID of the bill to fetch
     db: Session = Depends(get_db)
-):
+    ):
     # Fetch the bill by its ID
     bill = db.query(models.BillsBill).filter(models.BillsBill.id == bill_id).first()
-    
+    print(bill)
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     

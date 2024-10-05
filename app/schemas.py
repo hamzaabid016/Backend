@@ -118,19 +118,17 @@ class BillsBillText(BaseModel):
 class Bills_bill(BaseModel):
     id: int
     name_en: str
-    number: str
-    number_only: int
+    number: Optional[str]
+    number_only: Optional[int]
     sponsor_member_id: Optional[int]
     privatemember: Optional[bool]
     sponsor_politician_id: Optional[int]
     law: Optional[bool]
-    added: date
+    added: Optional[date]
     upvotes: int
     downvotes: int
-    institution: str
-    #name_fr: str
-    short_title_en: str
-    #short_title_fr: str
+    institution: Optional[str]
+    short_title_en: Optional[str]
     status_date: Optional[date]
     introduced: Optional[date]
     text_docid: Optional[int]
@@ -156,3 +154,10 @@ class Notification(BaseModel):
     read: bool
     class Config:
         orm_mode = True
+        
+        
+        
+class CreateBillRequest(BaseModel):
+    title: str
+    status: str
+    description: str

@@ -2,16 +2,22 @@ from datetime import datetime, timedelta
 import os
 from typing import List
 from fastapi import File, UploadFile
+from datetime import datetime, date
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
 from typing import Optional
 from .. import schemas, crud
+from ..models import BillsBill, BillsBillText
 from ..auth import create_access_token, authenticate_user, get_current_user,oauth2_scheme,verify_password_reset_token,get_password_hash
 from ..database import get_db
 from .. import models, helpers,chatbot
 from ..websocket_manager import manager
+
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 router = APIRouter()
@@ -134,6 +140,52 @@ def get_single_bill(
     
     return bill
 
+@router.post("/bills-bill/")
+def create_bill(bill: schemas.CreateBillRequest, db: Session = Depends(get_db)):
+    try:
+        # Get the current maximum text_docid and increment it for uniqueness
+        max_docid = db.query(func.max(BillsBill.text_docid)).scalar()
+        new_text_docid = (max_docid or 0) + 1
+        print(f"New text_docid generated: {new_text_docid}")
+        # Create a new BillsBill object
+        new_bill = BillsBill(
+            name_en=bill.title,  # Title as name_en
+            status_code=bill.status,  # Status as status_code
+            introduced=datetime.today().date(),  # Automatically set the introduced date to today
+            text_docid=new_text_docid,  # Assign the new docid
+            upvotes=0,  # Initialize upvotes to 0
+            downvotes=0  # Initialize downvotes to 0
+        )
+
+        # Add the new bill to the session
+        db.add(new_bill)
+        db.commit()
+        db.refresh(new_bill)  # Refresh to get the generated ID
+        print(f"New BillsBill created: {new_bill}")
+        # Create a new BillsBillText object linked to the created bill
+        new_bill_text = BillsBillText(
+            bill_id=new_bill.id,
+            docid=new_text_docid,  # Use the unique docid
+            created=datetime.now(),
+            text_en=bill.description,  # Store the description as text_en
+        )
+
+        # Add the new bill text to the session
+        db.add(new_bill_text)
+        db.commit()
+        print(f"New BillsBillText created: {new_bill_text}")
+        return {"message": "Bill created successfully", "bill_id": new_bill.id}
+    except SQLAlchemyError as e:
+        # Rollback in case of any database error
+        db.rollback()
+        # Raise an HTTPException with a 500 status code (Internal Server Error)
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    except Exception as e:
+        # Catch any other exceptions
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+    
+    
 @router.post("/seed-bills/")
 def seed_bills_endpoint(db: Session = Depends(get_db)):
     crud.seed_bills(db)

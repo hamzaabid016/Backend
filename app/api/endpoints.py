@@ -4,7 +4,7 @@ from typing import List
 from fastapi import File, UploadFile
 from datetime import datetime, date
 from uuid import uuid4
-from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect,Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -288,12 +288,16 @@ def delete_comments(comment_id: int, db: Session = Depends(get_db), token: str =
     return {"message": "Comment deleted successfully"}
 
 @router.post("/polls/{poll_id}/vote", response_model=schemas.UserPollVote)
-async def vote_poll(poll_id: int, vote: schemas.Vote, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def vote_poll(poll_id: int, vote: schemas.Vote, request:Request,db: Session = Depends(get_db) ,token: str = Depends(oauth2_scheme)):
     # Extract user from token
+    client_ip = request.client.host
+    print("Client ip is : ", client_ip)
+    location = await helpers.get_location_from_ip(client_ip)
+    location_info = location.get('city', 'Unknown city') if location else 'Unknown location'
+    print("adn the location is:",location_info)
     user = get_current_user(token, db)
-    
     # Register the user's vote
-    db_vote = crud.vote_poll(db=db, user_id=user.id, poll_id=poll_id, vote=vote.vote)
+    db_vote = crud.vote_poll(db=db, user_id=user.id, poll_id=poll_id, vote=vote.vote,ipaddress=client_ip, location=location_info)
     if db_vote is None:
          raise HTTPException(status_code=400, detail="User already voted with the same option")
     

@@ -73,7 +73,8 @@ class UserPollVote(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     poll_id = Column(Integer, ForeignKey('polls.id'))
     vote = Column(Boolean, nullable=False)  # "yes" or "no"
-
+    ipaddress = Column(Text, nullable=True)  # New field for IP address
+    location = Column(Text, nullable=True)
     user = relationship("User")
     poll = relationship("Poll")
     
@@ -171,7 +172,7 @@ class UserBillVote(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     bill_id = Column(Integer, ForeignKey('bills_bill.id'))
     upvote = Column(Boolean, nullable=True)  # True for upvote, False for downvote
-
+    
     user = relationship("User")
     bill = relationship("BillsBill")
 

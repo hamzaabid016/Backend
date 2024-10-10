@@ -102,15 +102,27 @@ def create_comment(db: Session, comment: models.Comment):
     return comment
 
 
-def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool):
+def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool ,ipaddress: str, location: str):
     # Check if the user has already voted
     existing_vote = db.query(models.UserPollVote).filter(
         models.UserPollVote.user_id == user_id,
         models.UserPollVote.poll_id == poll_id
     ).first()
+    
+  
+    ip_vote = db.query(models.UserPollVote).filter(
+        models.UserPollVote.ipaddress == ipaddress,
+        models.UserPollVote.poll_id == poll_id
+    ).first()
+    
+    
     poll = db.query(models.Poll).filter(models.Poll.id == poll_id).first()
     if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
+    if ip_vote:
+        raise HTTPException(status_code=400, detail="A vote from this IP address has already been cast for this poll.")
+
+
     if existing_vote:
         if existing_vote.vote == vote:
             return None  
@@ -123,13 +135,15 @@ def vote_poll(db: Session, user_id: int, poll_id: int, vote: bool):
                 poll.no_votes +=1
                 poll.yes_votes -=1
             existing_vote.vote = vote
+            existing_vote.ipaddress = ipaddress  # Save IP address
+            existing_vote.location = location
     else:
         # Add new vote
         if vote:
             poll.yes_votes +=1
         else:
             poll.no_votes +=1
-        db_vote = models.UserPollVote(user_id=user_id, poll_id=poll_id, vote=vote)
+        db_vote = models.UserPollVote(user_id=user_id, poll_id=poll_id, vote=vote,ipaddress=ipaddress, location=location)
         db.add(db_vote)
 
     db.commit()

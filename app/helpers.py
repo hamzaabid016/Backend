@@ -1,10 +1,11 @@
 
 import os
 import requests
-
+from fastapi import Request
 import re
 import pdfplumber
 from openai import OpenAI
+import httpx
 
 client = OpenAI(
     api_key= os.getenv('OPENAI_API_KEY')
@@ -111,3 +112,12 @@ def fetch_pdf_text(pdf_url: str) -> str:
     # Remove temp file
     os.remove("temp.pdf")
     return text
+
+
+async def get_location_from_ip(ip: str):
+    url = f"https://ipinfo.io/{ip}/json"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        if response.status_code == 200:
+            return response.json()
+        return None

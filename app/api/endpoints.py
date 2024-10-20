@@ -4,11 +4,12 @@ from typing import List
 from fastapi import File, UploadFile
 from datetime import datetime, date
 from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException, status,Query, Body,WebSocket,WebSocketDisconnect,Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import func
+from sqlalchemy import func,desc
 from typing import Optional
 from .. import schemas, crud
 from ..models import BillsBill, BillsBillText
@@ -113,7 +114,7 @@ def all_bills_bill(
     offset: int = Query(0, ge=0)    # Default offset is 0, must be non-negative
     ):
     # Fetch bills with limit and offset
-    bills = db.query(models.BillsBill).offset(offset).limit(limit).all()
+    bills = db.query(models.BillsBill).order_by(desc(models.BillsBill.introduced)).offset(offset).limit(limit).all()
     
     if not bills:
         raise HTTPException(status_code=404, detail="No bills found")
@@ -147,27 +148,26 @@ def create_bill(bill: schemas.CreateBillRequest, db: Session = Depends(get_db)):
         max_docid = db.query(func.max(BillsBill.text_docid)).scalar()
         new_text_docid = (max_docid or 0) + 1
         print(f"New text_docid generated: {new_text_docid}")
-        # Create a new BillsBill object
         new_bill = BillsBill(
-            name_en=bill.title,  # Title as name_en
-            status_code=bill.status,  # Status as status_code
-            introduced=datetime.today().date(),  # Automatically set the introduced date to today
-            text_docid=new_text_docid,  # Assign the new docid
-            upvotes=0,  # Initialize upvotes to 0
-            downvotes=0  # Initialize downvotes to 0
+            name_en=bill.title, 
+            status_code=bill.status,  
+            introduced=datetime.today().date(),  
+            text_docid=new_text_docid, 
+            upvotes=0, 
+            downvotes=0  
         )
 
         # Add the new bill to the session
         db.add(new_bill)
         db.commit()
-        db.refresh(new_bill)  # Refresh to get the generated ID
+        db.refresh(new_bill)  
         print(f"New BillsBill created: {new_bill}")
         # Create a new BillsBillText object linked to the created bill
         new_bill_text = BillsBillText(
             bill_id=new_bill.id,
-            docid=new_text_docid,  # Use the unique docid
+            docid=new_text_docid,  
             created=datetime.now(),
-            text_en=bill.description,  # Store the description as text_en
+            text_en=bill.description,  
         )
 
         # Add the new bill text to the session
